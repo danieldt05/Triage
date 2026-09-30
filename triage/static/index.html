@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage: find out why a website isn't working</title>
+<meta name="description" content="Paste a customer's link. Triage checks DNS, nameservers, the SSL certificate and the web server, and tells you in plain English what's wrong.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Ccircle cx='4' cy='13' r='3' fill='%231B1F24'/%3E%3Ccircle cx='13' cy='13' r='3' fill='%231B1F24'/%3E%3Ccircle cx='22' cy='13' r='3' fill='%23D4462A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/" aria-label="Triage home">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="4" cy="13" r="3"/><circle cx="13" cy="13" r="3"/><circle cx="22" cy="13" r="3" class="dot-end"/><path d="M7 13h3M16 13h3"/></svg>
+    <span>Triage</span>
+  </a>
+  <form id="form" class="lookup" autocomplete="off">
+    <label class="field field-url">
+      <span>Link</span>
+      <input id="url" name="url" type="text" inputmode="url" spellcheck="false" placeholder="Paste the customer's link or domain" required>
+    </label>
+    <label class="field field-expected">
+      <span>DNS should be at</span>
+      <input id="expected" name="expected" type="text" spellcheck="false" placeholder="Optional, e.g. Route 53">
+    </label>
+    <button id="go" type="submit" class="btn btn-primary">Diagnose</button>
+  </form>
+</header>
+
+<main id="main">
+  <section id="empty" class="empty">
+    <h1>Find out why a website isn't working.</h1>
+    <p>Paste the link a customer is having trouble with. Triage checks DNS, nameservers, the SSL certificate and the web server, then tells you what's wrong, how to fix it, and what to say to the customer.</p>
+    <p class="muted">Try a public test site that's broken on purpose:</p>
+    <div class="examples" id="examples">
+      <button type="button" data-url="expired.badssl.com">Expired certificate</button>
+      <button type="button" data-url="wrong.host.badssl.com">Certificate for the wrong name</button>
+      <button type="button" data-url="incomplete-chain.badssl.com">Missing intermediate</button>
+      <button type="button" data-url="dnssec-failed.org">Broken DNSSEC</button>
+      <button type="button" data-url="example.com">A healthy site</button>
+    </div>
+    <p class="muted small">Read-only: Triage only makes DNS queries, a TLS handshake and ordinary page requests, the same as a browser or dig and curl.</p>
+  </section>
+
+  <section id="loading" class="loading" hidden aria-live="polite">
+    <p>Checking <span id="loading-host" class="mono"></span>… <span id="loading-timer" class="muted"></span></p>
+    <ol class="path path-loading" aria-hidden="true">
+      <li><span>1</span>Name lookup</li><li><span>2</span>Nameservers</li><li><span>3</span>CDN or proxy</li><li><span>4</span>Certificate</li><li><span>5</span>Web server</li>
+    </ol>
+  </section>
+
+  <section id="error" class="notice" hidden role="alert"></section>
+
+  <div id="result" hidden>
+    <section class="verdict">
+      <div class="verdict-main">
+        <p class="verdict-meta"><span id="v-label" class="pill"></span><span id="v-host" class="mono"></span></p>
+        <h1 id="v-headline"></h1>
+        <p id="v-summary" class="lede"></p>
+      </div>
+      <aside class="actions" aria-label="Actions">
+        <p class="small muted" id="checked-at"></p>
+        <button type="button" class="btn btn-primary" id="recheck">Check again</button>
+        <button type="button" class="btn" id="copy-reply">Copy customer reply</button>
+        <div class="actions-row">
+          <button type="button" class="btn btn-quiet" id="copy-link">Copy link</button>
+          <button type="button" class="btn btn-quiet" id="download">Download JSON</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card" aria-labelledby="path-h">
+      <div class="card-head"><h2 id="path-h">Where the request goes</h2><p class="small muted" id="path-note"></p></div>
+      <ol class="path" id="path"></ol>
+    </section>
+
+    <section id="changes" class="card changes" hidden aria-labelledby="changes-h">
+      <div class="card-head"><h2 id="changes-h">What changed since the last check</h2><p class="small muted" id="changes-when"></p></div>
+      <dl id="changes-list" class="kv"></dl>
+    </section>
+
+    <section aria-label="Diagnosis" id="diagnoses" class="stack"></section>
+
+    <section aria-labelledby="ok-h" id="healthy-wrap">
+      <h2 id="ok-h" class="section-title">Checked and healthy</h2>
+      <ul id="healthy" class="healthy"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="raw-h">
+      <div class="card-head tabs-head">
+        <h2 id="raw-h">Raw data</h2>
+        <div class="tabs" role="tablist" id="tabs"></div>
+      </div>
+      <div class="raw" id="raw-panel" role="tabpanel"></div>
+    </section>
+
+    <section class="card reply-card" aria-labelledby="reply-h">
+      <div class="card-head"><h2 id="reply-h">Reply for the customer</h2></div>
+      <p id="reply" class="reply"></p>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <p>Triage is open source. Every diagnosis comes from a named rule with tests. <a href="/api/docs">API</a></p>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

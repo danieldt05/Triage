@@ -1,0 +1,12 @@
+# One-click deploy on Render's free tier: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: triage
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn triage.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
