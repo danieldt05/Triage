@@ -2,10 +2,8 @@
 
 **Paste a customer's link. Find out why their website isn't working, in plain English, in seconds.**
 
-![tests](https://github.com/YOUR-USERNAME/triage/actions/workflows/tests.yml/badge.svg)
-· **[Live demo](https://YOUR-APP.onrender.com)**
-
-![Triage diagnosing a site](docs/screenshot.png)
+![tests](https://github.com/danieldt05/Triage/actions/workflows/tests.yml/badge.svg)
+· **[Live demo](https://triage-w8lu.onrender.com)**
 
 When a customer says "my website is down", a support engineer usually runs a
 string of commands (`dig`, `curl`, `openssl`, `whois`), reads the raw output,
@@ -20,13 +18,22 @@ parallel and runs the results through a set of diagnostic rules. It tells you:
 
 It works with any DNS provider, CDN or host.
 
+> The live demo runs on a free server that sleeps when unused, so the first
+> check after a quiet period can take up to a minute.
+
 ---
 
 ## Why I built this
 
-*[Write this in your own words: two or three sentences about seeing the same
-handful of causes behind "my site is down" tickets during your support work,
-and wanting a tool that explains the cause rather than dumping raw output.]*
+Working in technical support, I noticed that most "my website is down" reports
+come down to the same handful of causes: DNS pointing at the wrong place,
+nameserver changes that haven't taken effect, expired or misconfigured
+certificates, or a server that isn't responding. Finding out which one meant
+running the same commands and reading raw output every time.
+
+I built Triage to do that investigation in one step and explain the result the
+way I'd explain it to a customer: what's wrong, where it breaks, how to fix it,
+and what to tell them.
 
 ## What it checks
 
@@ -40,6 +47,17 @@ and wanting a tool that explains the cause rather than dumping raw output.]*
 | Web server | Redirect chain and loops, error pages, HTTP→HTTPS redirect, IPv4 vs IPv6 reachability |
 | Registration | Registrar, expiry and hold statuses via RDAP |
 | www vs apex | Whether both versions of the address work |
+
+## Try it
+
+These public test sites are broken on purpose. Each one should produce the diagnosis shown:
+
+| Site | Diagnosis |
+|---|---|
+| [expired.badssl.com](https://triage-w8lu.onrender.com/?url=expired.badssl.com) | Expired certificate |
+| [wrong.host.badssl.com](https://triage-w8lu.onrender.com/?url=wrong.host.badssl.com) | Certificate doesn't cover the name |
+| [incomplete-chain.badssl.com](https://triage-w8lu.onrender.com/?url=incomplete-chain.badssl.com) | Missing intermediate certificate |
+| [dnssec-failed.org](https://triage-w8lu.onrender.com/?url=dnssec-failed.org) | Broken DNSSEC |
 
 ## How a diagnosis is made
 
@@ -151,7 +169,6 @@ API docs are served at `/api/docs`.
 
 1. Push this repo to GitHub.
 2. On [Render](https://render.com): **New → Blueprint**, pick the repo. `render.yaml` does the rest.
-3. Replace the demo and badge links at the top of this file.
 
 ## Known limitations
 
